@@ -37,11 +37,22 @@ namespace UsersWebApp.Logging
 
         private void WriteToFile(string message)
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(_filePath));
-
-            lock (this)
+            try
             {
-                File.AppendAllText(_filePath, message + Environment.NewLine, Encoding.UTF8);
+                var directory = Path.GetDirectoryName(_filePath);
+                if (!Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
+                lock (this)
+                {
+                    File.AppendAllText(_filePath, message + Environment.NewLine, Encoding.UTF8);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error writing to log file: {ex.Message}");
             }
         }
 

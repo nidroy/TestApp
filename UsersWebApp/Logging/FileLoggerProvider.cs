@@ -6,18 +6,23 @@
         private readonly long _fileSizeLimit;
         private readonly int _retainedFileCount;
 
-        public FileLoggerProvider(IConfiguration config)
+        public FileLoggerProvider(IConfiguration config, IHostEnvironment env)
         {
-            // Добавляем проверки и значения по умолчанию
-            _filePath = config.GetValue("Logging:File:Path", "Logs/app.log");
-            _fileSizeLimit = config.GetValue("Logging:File:FileSizeLimitBytes", 10485760);
-            _retainedFileCount = config.GetValue("Logging:File:RetainedFileCountLimit", 5);
+            // Получаем путь к корневой папке приложения
+            var basePath = env.ContentRootPath;
+
+            _filePath = config.GetValue("Logging:File:Path",
+                Path.Combine(basePath, "Logs", "app.log"));
+
+            _fileSizeLimit = config.GetValue<long>(
+                "Logging:File:FileSizeLimitBytes", 10485760);
+
+            _retainedFileCount = config.GetValue<int>(
+                "Logging:File:RetainedFileCountLimit", 5);
         }
 
-        public ILogger CreateLogger(string categoryName)
-        {
-            return new FileLogger(categoryName, _filePath, _fileSizeLimit, _retainedFileCount);
-        }
+        public ILogger CreateLogger(string categoryName) =>
+            new FileLogger(categoryName, _filePath, _fileSizeLimit, _retainedFileCount);
 
         public void Dispose() { }
     }

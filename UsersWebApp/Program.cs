@@ -18,6 +18,9 @@ namespace UsersWebApp
             // Add services to the container.
             builder.Services.AddControllersWithViews();
 
+            // Добавляем IHostEnvironment в провайдер
+            builder.Services.AddSingleton<IHostEnvironment>(builder.Environment);
+
             builder.Services.AddDbContext<ApplicationContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -31,7 +34,10 @@ namespace UsersWebApp
                 builder.Logging.ClearProviders();
                 builder.Logging.AddConsole();
                 builder.Logging.AddDebug();
-                builder.Logging.AddProvider(new FileLoggerProvider(builder.Configuration));
+                // Регистрируем FileLoggerProvider с передачей IHostEnvironment
+                builder.Logging.AddProvider(new FileLoggerProvider(
+                    builder.Configuration,
+                    builder.Environment));
             }
             else
             {
@@ -59,6 +65,14 @@ namespace UsersWebApp
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
+
+            // Логирование пути к файлам при запуске
+            if (!isMigration)
+            {
+                var logger = app.Services.GetRequiredService<ILogger<Program>>();
+                var logPath = Path.Combine(app.Environment.ContentRootPath, "logs", "app.log");
+                logger.LogInformation("Logs directory: {Path}", logPath);
+            }
 
             app.Run();
         }
