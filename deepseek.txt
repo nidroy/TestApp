@@ -1,0 +1,759 @@
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+напиши скрипт на c# для связи с бд через строку подключения и выполнение запроса на получение записей с таблицы пользователь.
+
+using System;
+using System.Data.SqlClient;
+
+class Program
+{
+    static void Main()
+    {
+        // Строка подключения к базе данных
+        string connectionString = "Server=your_server_name;Database=your_database_name;User Id=your_username;Password=your_password;";
+
+        // SQL-запрос для получения данных из таблицы Пользователь
+        string query = "SELECT * FROM Пользователь";
+
+        // Создание подключения к базе данных
+        using (SqlConnection connection = new SqlConnection(connectionString))
+        {
+            try
+            {
+                // Открываем соединение
+                connection.Open();
+
+                // Создание команды для выполнения SQL-запроса
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    // Выполнение запроса и получение данных
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        // Проверяем, есть ли данные
+                        if (reader.HasRows)
+                        {
+                            // Чтение данных построчно
+                            while (reader.Read())
+                            {
+                                // Пример чтения данных из столбцов
+                                int id = reader.GetInt32(0); // Предполагаем, что первый столбец - это ID
+                                string name = reader.GetString(1); // Предполагаем, что второй столбец - это имя
+                                string email = reader.GetString(2); // Предполагаем, что третий столбец - это email
+
+                                // Вывод данных в консоль
+                                Console.WriteLine($"ID: {id}, Name: {name}, Email: {email}");
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("Нет данных в таблице Пользователь.");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Обработка ошибок
+                Console.WriteLine("Ошибка: " + ex.Message);
+            }
+            finally
+            {
+                // Закрываем соединение
+                connection.Close();
+            }
+        }
+    }
+}
+
+Пояснение:
+	1) Строка подключения: В строке подключения connectionString укажите параметры для подключения к вашей базе данных (сервер, имя базы данных, имя пользователя и пароль).
+	2) SQL-запрос: В переменной query указан SQL-запрос для выборки всех данных из таблицы Пользователь.
+	3) Подключение к базе данных: Используется класс SqlConnection для установления соединения с базой данных.
+	4) Выполнение запроса: Создается объект SqlCommand, который выполняет SQL-запрос. Результат запроса читается с помощью SqlDataReader.
+	5) Чтение данных: Данные из таблицы читаются построчно и выводятся в консоль.
+	6) Обработка ошибок: В блоке catch обрабатываются возможные ошибки, которые могут возникнуть при подключении или выполнении запроса.
+	7) Закрытие соединения: В блоке finally соединение с базой данных закрывается.
+
+Важно:
+	1) Замените your_server_name, your_database_name, your_username и your_password на реальные значения для вашей базы данных.
+	2) Убедитесь, что таблица Пользователь существует в вашей базе данных и содержит соответствующие столбцы.
+
+Этот скрипт можно использовать как основу для более сложных операций с базой данных.
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+оберни запрос в метод и сделай еще один метод для выполнения процедуры которая возвращает знчение
+
+using System;
+using System.Data.SqlClient;
+
+class Program
+{
+    static void Main()
+    {
+        // Строка подключения к базе данных
+        string connectionString = "Server=your_server_name;Database=your_database_name;User Id=your_username;Password=your_password;";
+
+        // Вызов метода для получения данных из таблицы Пользователь
+        GetUsersFromDatabase(connectionString);
+
+        // Вызов метода для выполнения хранимой процедуры
+        int result = ExecuteStoredProcedure(connectionString, "YourStoredProcedureName", 123); // Пример параметра
+        Console.WriteLine($"Результат выполнения процедуры: {result}");
+    }
+
+    // Метод для получения данных из таблицы Пользователь
+    static void GetUsersFromDatabase(string connectionString)
+    {
+        string query = "SELECT * FROM Пользователь";
+
+        using (SqlConnection connection = new SqlConnection(connectionString))
+        {
+            try
+            {
+                connection.Open();
+
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.HasRows)
+                        {
+                            while (reader.Read())
+                            {
+                                int id = reader.GetInt32(0); // ID
+                                string name = reader.GetString(1); // Имя
+                                string email = reader.GetString(2); // Email
+
+                                Console.WriteLine($"ID: {id}, Name: {name}, Email: {email}");
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("Нет данных в таблице Пользователь.");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Ошибка: " + ex.Message);
+            }
+            finally
+            {
+                connection.Close();
+            }
+        }
+    }
+
+    // Метод для выполнения хранимой процедуры, которая возвращает значение
+    static int ExecuteStoredProcedure(string connectionString, string procedureName, int inputParameter)
+    {
+        int result = 0;
+
+        using (SqlConnection connection = new SqlConnection(connectionString))
+        {
+            try
+            {
+                connection.Open();
+
+                // Создаем команду для выполнения хранимой процедуры
+                using (SqlCommand command = new SqlCommand(procedureName, connection))
+                {
+                    command.CommandType = System.Data.CommandType.StoredProcedure;
+
+                    // Добавляем входной параметр
+                    command.Parameters.AddWithValue("@InputParameter", inputParameter);
+
+                    // Добавляем выходной параметр
+                    SqlParameter outputParameter = new SqlParameter
+                    {
+                        ParameterName = "@OutputParameter",
+                        SqlDbType = System.Data.SqlDbType.Int,
+                        Direction = System.Data.ParameterDirection.Output
+                    };
+                    command.Parameters.Add(outputParameter);
+
+                    // Выполняем процедуру
+                    command.ExecuteNonQuery();
+
+                    // Получаем значение выходного параметра
+                    result = (int)outputParameter.Value;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Ошибка при выполнении процедуры: " + ex.Message);
+            }
+            finally
+            {
+                connection.Close();
+            }
+        }
+
+        return result;
+    }
+}
+
+Пояснение:
+
+	1) Метод GetUsersFromDatabase:
+	Принимает строку подключения и выполняет SQL-запрос для получения данных из таблицы Пользователь.
+	Данные выводятся в консоль.
+
+	2) Метод ExecuteStoredProcedure:	
+	Принимает строку подключения, имя хранимой процедуры и входной параметр.
+	Выполняет хранимую процедуру, которая возвращает значение через выходной параметр.
+	Возвращает результат выполнения процедуры.
+
+Хранимая процедура:
+
+CREATE PROCEDURE YourStoredProcedureName
+    @InputParameter INT,
+    @OutputParameter INT OUTPUT
+AS
+BEGIN
+    -- Логика процедуры
+    SET @OutputParameter = @InputParameter * 2; -- Пример: возвращаем удвоенное значение
+END
+
+Предполагается, что у вас есть хранимая процедура в базе данных, которая принимает входной параметр и возвращает значение через выходной параметр.
+
+Параметры:
+	Входной параметр передается в метод ExecuteStoredProcedure.
+	Выходной параметр используется для получения результата выполнения процедуры.
+
+Важно:
+	Замените your_server_name, your_database_name, your_username, your_password и YourStoredProcedureName на реальные значения.
+	Убедитесь, что хранимая процедура существует в вашей базе данных и корректно работает.
+
+Этот код можно адаптировать под ваши конкретные задачи, например, для работы с другими типами данных или более сложными процедурами.
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+пусть в процедуре будет три входных параметра
+
+using System;
+using System.Data.SqlClient;
+
+class Program
+{
+    static void Main()
+    {
+        // Строка подключения к базе данных
+        string connectionString = "Server=your_server_name;Database=your_database_name;User Id=your_username;Password=your_password;";
+
+        // Вызов метода для выполнения хранимой процедуры с тремя входными параметрами
+        int result = ExecuteStoredProcedure(
+            connectionString,
+            "YourStoredProcedureName",
+            10, // Первый параметр (например, число)
+            20, // Второй параметр (например, число)
+            30  // Третий параметр (например, число)
+        );
+
+        Console.WriteLine($"Результат выполнения процедуры: {result}");
+    }
+
+    // Метод для выполнения хранимой процедуры с тремя входными параметрами
+    static int ExecuteStoredProcedure(string connectionString, string procedureName, int param1, int param2, int param3)
+    {
+        int result = 0;
+
+        using (SqlConnection connection = new SqlConnection(connectionString))
+        {
+            try
+            {
+                connection.Open();
+
+                // Создаем команду для выполнения хранимой процедуры
+                using (SqlCommand command = new SqlCommand(procedureName, connection))
+                {
+                    command.CommandType = System.Data.CommandType.StoredProcedure;
+
+                    // Добавляем три входных параметра
+                    command.Parameters.AddWithValue("@Param1", param1);
+                    command.Parameters.AddWithValue("@Param2", param2);
+                    command.Parameters.AddWithValue("@Param3", param3);
+
+                    // Добавляем выходной параметр
+                    SqlParameter outputParameter = new SqlParameter
+                    {
+                        ParameterName = "@OutputParameter",
+                        SqlDbType = System.Data.SqlDbType.Int,
+                        Direction = System.Data.ParameterDirection.Output
+                    };
+                    command.Parameters.Add(outputParameter);
+
+                    // Выполняем процедуру
+                    command.ExecuteNonQuery();
+
+                    // Получаем значение выходного параметра
+                    result = (int)outputParameter.Value;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Ошибка при выполнении процедуры: " + ex.Message);
+            }
+            finally
+            {
+                connection.Close();
+            }
+        }
+
+        return result;
+    }
+}
+
+Пример хранимой процедуры в SQL Server:
+
+CREATE PROCEDURE YourStoredProcedureName
+    @Param1 INT,        -- Первый входной параметр
+    @Param2 INT,        -- Второй входной параметр
+    @Param3 INT,        -- Третий входной параметр
+    @OutputParameter INT OUTPUT  -- Выходной параметр
+AS
+BEGIN
+    -- Пример логики: сумма трех параметров
+    SET @OutputParameter = @Param1 + @Param2 + @Param3;
+END
+
+Пояснение:
+	Метод ExecuteStoredProcedure:
+	Принимает строку подключения, имя хранимой процедуры и три входных параметра.
+	Добавляет три входных параметра (@Param1, @Param2, @Param3) к команде.
+	Использует выходной параметр (@OutputParameter) для получения результата выполнения процедуры.
+
+Хранимая процедура:
+	Принимает три входных параметра (@Param1, @Param2, @Param3).
+	Выполняет логику (в данном примере — сумму трех параметров).
+	Возвращает результат через выходной параметр (@OutputParameter).
+
+Вызов метода:
+	В методе Main вызывается ExecuteStoredProcedure с тремя входными параметрами (10, 20, 30).
+	Результат выполнения процедуры выводится в консоль.
+
+Важно:
+	Замените your_server_name, your_database_name, your_username, your_password и YourStoredProcedureName на реальные значения.
+	Убедитесь, что хранимая процедура существует в вашей базе данных и корректно работает.
+
+Этот код можно адаптировать для работы с другими типами данных или более сложной логикой в хранимой процедуре.
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+добавь метод для добавление данных пользователя
+
+using System;
+using System.Data.SqlClient;
+
+class Program
+{
+    static void Main()
+    {
+        // Строка подключения к базе данных
+        string connectionString = "Server=your_server_name;Database=your_database_name;User Id=your_username;Password=your_password;";
+
+        // Вызов метода для добавления нового пользователя
+        AddUserToDatabase(connectionString, "Иван Иванов", "ivan@example.com", "1234567890");
+
+        // Вызов метода для получения данных из таблицы Пользователь
+        GetUsersFromDatabase(connectionString);
+    }
+
+    // Метод для добавления нового пользователя
+    static void AddUserToDatabase(string connectionString, string name, string email, string phone)
+    {
+        // SQL-запрос для добавления данных
+        string query = "INSERT INTO Пользователь (Имя, Email, Телефон) VALUES (@Name, @Email, @Phone)";
+
+        using (SqlConnection connection = new SqlConnection(connectionString))
+        {
+            try
+            {
+                connection.Open();
+
+                // Создаем команду для выполнения SQL-запроса
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    // Добавляем параметры
+                    command.Parameters.AddWithValue("@Name", name);
+                    command.Parameters.AddWithValue("@Email", email);
+                    command.Parameters.AddWithValue("@Phone", phone);
+
+                    // Выполняем запрос
+                    int rowsAffected = command.ExecuteNonQuery();
+
+                    // Проверяем, была ли добавлена запись
+                    if (rowsAffected > 0)
+                    {
+                        Console.WriteLine("Пользователь успешно добавлен.");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Не удалось добавить пользователя.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Ошибка при добавлении пользователя: " + ex.Message);
+            }
+            finally
+            {
+                connection.Close();
+            }
+        }
+    }
+
+    // Метод для получения данных из таблицы Пользователь
+    static void GetUsersFromDatabase(string connectionString)
+    {
+        string query = "SELECT * FROM Пользователь";
+
+        using (SqlConnection connection = new SqlConnection(connectionString))
+        {
+            try
+            {
+                connection.Open();
+
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.HasRows)
+                        {
+                            while (reader.Read())
+                            {
+                                int id = reader.GetInt32(0); // ID
+                                string name = reader.GetString(1); // Имя
+                                string email = reader.GetString(2); // Email
+                                string phone = reader.GetString(3); // Телефон
+
+                                Console.WriteLine($"ID: {id}, Name: {name}, Email: {email}, Phone: {phone}");
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("Нет данных в таблице Пользователь.");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Ошибка: " + ex.Message);
+            }
+            finally
+            {
+                connection.Close();
+            }
+        }
+    }
+}
+
+Пояснение:
+	Метод AddUserToDatabase:
+	Принимает строку подключения, имя, email и телефон пользователя.
+	Формирует SQL-запрос INSERT для добавления новой записи в таблицу Пользователь.
+	Использует параметризованный запрос для защиты от SQL-инъекций.
+	Выполняет запрос и проверяет, была ли добавлена запись.
+	
+	Метод GetUsersFromDatabase:
+	Получает все записи из таблицы Пользователь и выводит их в консоль.
+	Используется для проверки, что новый пользователь был успешно добавлен.
+
+Пример таблицы Пользователь:
+
+	Предполагается, что таблица Пользователь имеет следующие столбцы:
+	ID (автоинкремент)
+	Имя (строка)
+	Email (строка)
+	Телефон (строка)
+
+Пример вывода:
+	После добавления пользователя и выполнения метода GetUsersFromDatabase в консоль будут выведены все записи из таблицы, включая нового пользователя.
+
+Пример SQL-запроса для создания таблицы Пользователь:
+
+CREATE TABLE Пользователь (
+    ID INT PRIMARY KEY IDENTITY(1, 1),
+    Имя NVARCHAR(100) NOT NULL,
+    Email NVARCHAR(100) NOT NULL,
+    Телефон NVARCHAR(20) NOT NULL
+);
+
+Важно:
+	Замените your_server_name, your_database_name, your_username, your_password на реальные значения.
+	Убедитесь, что таблица Пользователь существует в вашей базе данных и имеет соответствующие столбцы.
+
+Этот код можно расширить, добавив дополнительные поля или логику, например, проверку уникальности email перед добавлением пользователя.
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+можешь сделать универсальные методы для круд запросов к бд а также универсальный метод для вывзова процедуры
+
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
+
+class DatabaseHelper
+{
+    private readonly string _connectionString;
+
+    public DatabaseHelper(string connectionString)
+    {
+        _connectionString = connectionString;
+    }
+
+    // Универсальный метод для выполнения SQL-запроса (SELECT)
+    public List<Dictionary<string, object>> ExecuteQuery(string query, Dictionary<string, object> parameters = null)
+    {
+        var result = new List<Dictionary<string, object>>();
+
+        using (SqlConnection connection = new SqlConnection(_connectionString))
+        {
+            try
+            {
+                connection.Open();
+
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    if (parameters != null)
+                    {
+                        foreach (var param in parameters)
+                        {
+                            command.Parameters.AddWithValue(param.Key, param.Value);
+                        }
+                    }
+
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            var row = new Dictionary<string, object>();
+
+                            for (int i = 0; i < reader.FieldCount; i++)
+                            {
+                                row[reader.GetName(i)] = reader.GetValue(i);
+                            }
+
+                            result.Add(row);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Ошибка при выполнении запроса: " + ex.Message);
+            }
+            finally
+            {
+                connection.Close();
+            }
+        }
+
+        return result;
+    }
+
+    // Универсальный метод для выполнения SQL-команды (INSERT, UPDATE, DELETE)
+    public int ExecuteNonQuery(string query, Dictionary<string, object> parameters = null)
+    {
+        int rowsAffected = 0;
+
+        using (SqlConnection connection = new SqlConnection(_connectionString))
+        {
+            try
+            {
+                connection.Open();
+
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    if (parameters != null)
+                    {
+                        foreach (var param in parameters)
+                        {
+                            command.Parameters.AddWithValue(param.Key, param.Value);
+                        }
+                    }
+
+                    rowsAffected = command.ExecuteNonQuery();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Ошибка при выполнении команды: " + ex.Message);
+            }
+            finally
+            {
+                connection.Close();
+            }
+        }
+
+        return rowsAffected;
+    }
+
+    // Универсальный метод для вызова хранимой процедуры
+    public Dictionary<string, object> ExecuteStoredProcedure(string procedureName, Dictionary<string, object> parameters = null)
+    {
+        var result = new Dictionary<string, object>();
+
+        using (SqlConnection connection = new SqlConnection(_connectionString))
+        {
+            try
+            {
+                connection.Open();
+
+                using (SqlCommand command = new SqlCommand(procedureName, connection))
+                {
+                    command.CommandType = CommandType.StoredProcedure;
+
+                    if (parameters != null)
+                    {
+                        foreach (var param in parameters)
+                        {
+                            if (param.Value == null)
+                            {
+                                command.Parameters.AddWithValue(param.Key, DBNull.Value);
+                            }
+                            else
+                            {
+                                command.Parameters.AddWithValue(param.Key, param.Value);
+                            }
+                        }
+                    }
+
+                    // Добавляем выходные параметры
+                    var outputParameters = new List<SqlParameter>();
+                    foreach (SqlParameter parameter in command.Parameters)
+                    {
+                        if (parameter.Direction == ParameterDirection.Output || parameter.Direction == ParameterDirection.InputOutput)
+                        {
+                            outputParameters.Add(parameter);
+                        }
+                    }
+
+                    // Выполняем процедуру
+                    command.ExecuteNonQuery();
+
+                    // Получаем значения выходных параметров
+                    foreach (var outputParam in outputParameters)
+                    {
+                        result[outputParam.ParameterName] = outputParam.Value;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Ошибка при выполнении процедуры: " + ex.Message);
+            }
+            finally
+            {
+                connection.Close();
+            }
+        }
+
+        return result;
+    }
+}
+
+class Program
+{
+    static void Main()
+    {
+        // Строка подключения к базе данных
+        string connectionString = "Server=your_server_name;Database=your_database_name;User Id=your_username;Password=your_password;";
+
+        var dbHelper = new DatabaseHelper(connectionString);
+
+        // Пример использования метода ExecuteQuery (SELECT)
+        var selectQuery = "SELECT * FROM Пользователь";
+        var users = dbHelper.ExecuteQuery(selectQuery);
+        foreach (var user in users)
+        {
+            foreach (var field in user)
+            {
+                Console.WriteLine($"{field.Key}: {field.Value}");
+            }
+            Console.WriteLine();
+        }
+
+        // Пример использования метода ExecuteNonQuery (INSERT)
+        var insertQuery = "INSERT INTO Пользователь (Имя, Email, Телефон) VALUES (@Name, @Email, @Phone)";
+        var insertParams = new Dictionary<string, object>
+        {
+            { "@Name", "Алексей Петров" },
+            { "@Email", "alexey@example.com" },
+            { "@Phone", "9876543210" }
+        };
+        int rowsInserted = dbHelper.ExecuteNonQuery(insertQuery, insertParams);
+        Console.WriteLine($"Добавлено записей: {rowsInserted}");
+
+        // Пример использования метода ExecuteStoredProcedure
+        var procedureName = "YourStoredProcedureName";
+        var procedureParams = new Dictionary<string, object>
+        {
+            { "@InputParam1", 10 },
+            { "@InputParam2", 20 },
+            { "@OutputParam", null } // Выходной параметр
+        };
+        var procedureResult = dbHelper.ExecuteStoredProcedure(procedureName, procedureParams);
+        Console.WriteLine($"Результат выполнения процедуры: {procedureResult["@OutputParam"]}");
+    }
+}
+
+Пояснение:
+	Класс DatabaseHelper:
+	Инкапсулирует логику работы с базой данных.
+	Принимает строку подключения в конструкторе.
+
+	Метод ExecuteQuery:
+	Выполняет SQL-запрос SELECT и возвращает результат в виде списка словарей, где каждый словарь представляет строку таблицы.
+
+	Метод ExecuteNonQuery:
+	Выполняет SQL-команды INSERT, UPDATE, DELETE и возвращает количество затронутых строк.
+
+	Метод ExecuteStoredProcedure:
+	Выполняет хранимую процедуру и возвращает выходные параметры в виде словаря.
+
+Пример использования:
+
+	В методе Main показано, как использовать эти методы для выполнения различных операций с базой данных.
+
+Пример SQL-запросов и процедуры:
+
+Таблица Пользователь:
+
+sql
+Copy
+CREATE TABLE Пользователь (
+    ID INT PRIMARY KEY IDENTITY(1, 1),
+    Имя NVARCHAR(100) NOT NULL,
+    Email NVARCHAR(100) NOT NULL,
+    Телефон NVARCHAR(20) NOT NULL
+);
+
+Хранимая процедура:
+
+sql
+Copy
+CREATE PROCEDURE YourStoredProcedureName
+    @InputParam1 INT,
+    @InputParam2 INT,
+    @OutputParam INT OUTPUT
+AS
+BEGIN
+    SET @OutputParam = @InputParam1 + @InputParam2;
+END
+
+Преимущества:
+	Гибкость: Методы работают с любыми таблицами и параметрами.
+	Безопасность: Используются параметризованные запросы для защиты от SQL-инъекций.
+	Универсальность: Подходит для любых CRUD-операций и вызова процедур.
+
+Важно:
+	Замените your_server_name, your_database_name, your_username, your_password на реальные значения.
+	Убедитесь, что таблицы и процедуры существуют в вашей базе данных.
+
+Этот код можно легко адаптировать для работы с другими базами данных, например, MySQL или PostgreSQL, заменив SqlConnection и SqlCommand на соответствующие классы.
