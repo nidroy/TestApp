@@ -757,3 +757,223 @@ END
 	Убедитесь, что таблицы и процедуры существуют в вашей базе данных.
 
 Этот код можно легко адаптировать для работы с другими базами данных, например, MySQL или PostgreSQL, заменив SqlConnection и SqlCommand на соответствующие классы.
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+using System;
+using System.Data.SqlClient;
+
+class Program
+{
+    static void Main()
+    {
+        // Настройки подключения (замените на свои)
+        string connectionString = "Server=localhost;Database=TestDB;User Id=sa;Password=your_strong_password;";
+        
+        // 1. Получаем и выводим пользователей
+        GetUsers(connectionString);
+
+        // 2. Вызываем хранимую процедуру
+        int result = CallStoredProcedure(
+            connectionString,
+            "CalculateUserStats",
+            2023,    // Год
+            100,     // Минимальный возраст
+            500      // Лимит выборки
+        );
+        
+        Console.WriteLine($"Результат выполнения процедуры: {result}");
+    }
+
+    // Метод для получения пользователей
+    static void GetUsers(string connectionString)
+    {
+        const string query = "SELECT Id, Name, Email FROM Users";
+        
+        using (var connection = new SqlConnection(connectionString))
+        {
+            try
+            {
+                connection.Open();
+                using (var command = new SqlCommand(query, connection))
+                {
+                    var reader = command.ExecuteReader();
+                    
+                    if (!reader.HasRows)
+                    {
+                        Console.WriteLine("Пользователи не найдены");
+                        return;
+                    }
+
+                    Console.WriteLine("Список пользователей:");
+                    while (reader.Read())
+                    {
+                        Console.WriteLine($"ID: {reader["Id"]}, " +
+                                        $"Name: {reader["Name"]}, " +
+                                        $"Email: {reader["Email"]}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка: {ex.Message}");
+            }
+        }
+    }
+
+    // Метод для вызова хранимой процедуры с 3 параметрами
+    static int CallStoredProcedure(
+        string connectionString, 
+        string procedureName, 
+        int year, 
+        int minAge, 
+        int limit)
+    {
+        int result = 0;
+
+        using (var connection = new SqlConnection(connectionString))
+        {
+            try
+            {
+                connection.Open();
+                using (var command = new SqlCommand(procedureName, connection))
+                {
+                    command.CommandType = System.Data.CommandType.StoredProcedure;
+
+                    // Добавляем параметры
+                    command.Parameters.AddRange(new[]
+                    {
+                        new SqlParameter("@Year", year),
+                        new SqlParameter("@MinAge", minAge),
+                        new SqlParameter("@Limit", limit),
+                        new SqlParameter("@Result", System.Data.SqlDbType.Int) 
+                        { 
+                            Direction = System.Data.ParameterDirection.Output 
+                        }
+                    });
+
+                    command.ExecuteNonQuery();
+                    result = (int)command.Parameters["@Result"].Value;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка процедуры: {ex.Message}");
+            }
+        }
+
+        return result;
+    }
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+using System;
+using System.Data.SqlClient;
+using System.Web.Services;
+
+[WebService(Namespace = "http://yournamespace.com/")]
+[WebServiceBinding(ConformsTo = WsiProfiles.BasicProfile1_1)]
+public class UserService : WebService
+{
+    private readonly string connectionString = 
+        System.Configuration.ConfigurationManager.ConnectionStrings["DBConnection"].ConnectionString;
+
+    [WebMethod]
+    public User[] GetUsers()
+    {
+        var users = new System.Collections.Generic.List<User>();
+        
+        using (var connection = new SqlConnection(connectionString))
+        {
+            const string query = "SELECT Id, Name, Email FROM Users";
+            
+            try
+            {
+                connection.Open();
+                using (var command = new SqlCommand(query, connection))
+                {
+                    var reader = command.ExecuteReader();
+                    
+                    while (reader.Read())
+                    {
+                        users.Add(new User
+                        {
+                            Id = Convert.ToInt32(reader["Id"]),
+                            Name = reader["Name"].ToString(),
+                            Email = reader["Email"].ToString()
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new SoapException("Database error",
+                    new System.Xml.XmlQualifiedName("DatabaseError"), ex);
+            }
+        }
+        
+        return users.ToArray();
+    }
+
+    [WebMethod]
+    public int CalculateUserStats(int year, int minAge, int limit)
+    {
+        int result = 0;
+
+        using (var connection = new SqlConnection(connectionString))
+        {
+            try
+            {
+                connection.Open();
+                using (var command = new SqlCommand("CalculateUserStats", connection))
+                {
+                    command.CommandType = System.Data.CommandType.StoredProcedure;
+
+                    command.Parameters.AddRange(new[]
+                    {
+                        new SqlParameter("@Year", year),
+                        new SqlParameter("@MinAge", minAge),
+                        new SqlParameter("@Limit", limit),
+                        new SqlParameter("@Result", System.Data.SqlDbType.Int) 
+                        { 
+                            Direction = System.Data.ParameterDirection.Output 
+                        }
+                    });
+
+                    command.ExecuteNonQuery();
+                    result = (int)command.Parameters["@Result"].Value;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new SoapException("Procedure error",
+                    new System.Xml.XmlQualifiedName("ProcedureError"), ex);
+            }
+        }
+
+        return result;
+    }
+}
+
+public class User
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public string Email { get; set; }
+}
+
+/////////////////////////////////////////////Web.config
+
+<configuration>
+  <connectionStrings>
+    <add name="DBConnection" 
+         connectionString="Server=your_server;Database=your_db;User Id=user;Password=pass;" 
+         providerName="System.Data.SqlClient"/>
+  </connectionStrings>
+  
+  <system.web>
+    <compilation debug="true" targetFramework="4.8"/>
+    <httpRuntime targetFramework="4.8"/>
+  </system.web>
+</configuration>
